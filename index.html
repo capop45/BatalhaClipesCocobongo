@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Batalha de Clipes | República Cocobongo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-body: #0f0f0f; 
+            --bg-card: #212121; 
+            --bg-sidebar: #181818;
+            --text-main: #ffffff; 
+            --text-dim: #aaaaaa; 
+            --accent: #ff0000; /* Vermelho YouTube */
+            --danger: #ff4b4b; 
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-body); color: var(--text-main); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* Sidebar & Navegação */
+        aside { 
+            width: 280px; background: var(--bg-sidebar); padding: 25px; 
+            border-right: 1px solid rgba(255,255,255,0.1); position: fixed; 
+            height: 100vh; overflow-y: auto; z-index: 1000; transition: var(--transition);
+        }
+        @media (max-width: 1024px) {
+            aside { left: -280px; }
+            aside.open { left: 0; box-shadow: 10px 0 50px rgba(0,0,0,0.8); }
+        }
+
+        .sidebar-overlay { 
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); 
+            z-index: 999; backdrop-filter: blur(4px); 
+        }
+        .sidebar-overlay.show { display: block; }
+
+        .logo { font-size: 1.2rem; font-weight: 900; color: #fff; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; cursor: pointer; line-height: 1.2;}
+        .logo i { color: var(--accent); font-size: 1.5rem;}
+        
+        .menu-section { margin-bottom: 25px; }
+        .menu-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1.2px; margin-bottom: 12px; font-weight: 800; }
+        
+        .menu-item { 
+            padding: 12px; border-radius: 10px; cursor: pointer; display: flex; 
+            align-items: center; gap: 12px; transition: 0.2s; color: var(--text-dim); font-size: 0.9rem; margin-bottom: 4px;
+        }
+        .menu-item:hover, .menu-item.active { background: rgba(255,0,0,0.1); color: var(--accent); }
+        .delete-list-btn { margin-left: auto; color: var(--text-dim); border: none; background: transparent; cursor: pointer; padding: 5px; }
+        .delete-list-btn:hover { color: var(--danger); }
+
+        /* Conteúdo Principal */
+        main { flex: 1; margin-left: 280px; padding: 20px; width: 100%; transition: var(--transition); }
+        @media (max-width: 1024px) { main { margin-left: 0; } }
+
+        header { 
+            display: flex; align-items: center; margin-bottom: 25px; gap: 15px; 
+            position: sticky; top: 0; z-index: 100; background: var(--bg-body); padding: 10px 0;
+        }
+        .menu-toggle { display: none; font-size: 1.4rem; color: var(--text-main); cursor: pointer; }
+        @media (max-width: 1024px) { .menu-toggle { display: block; } }
+
+        .search-container { flex: 1; position: relative; display: flex; gap: 10px;}
+        .search-container input { 
+            width: 100%; padding: 12px 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); 
+            background: var(--bg-body); color: var(--text-main); font-size: 1rem; outline: none;
+        }
+        .search-container input:focus { border-color: var(--accent); }
+        .search-btn {
+            background: var(--bg-card); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+            padding: 0 20px; border-radius: 20px; cursor: pointer; transition: 0.2s;
+        }
+        .search-btn:hover { background: var(--accent); border-color: var(--accent); }
+
+        /* Grid de Vídeos */
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        @media (max-width: 480px) { .results-grid { grid-template-columns: 1fr; gap: 15px; } }
+
+        .video-card { 
+            background: var(--bg-card); border-radius: 12px; overflow: hidden; 
+            display: flex; flex-direction: column; transition: 0.2s;
+        }
+        .video-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .thumb-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; }
+        .video-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        .video-card-info { padding: 15px; flex-grow: 1; }
+        .video-card-info h3 { font-size: 0.95rem; margin-bottom: 8px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;}
+        
+        .card-actions { display: flex; border-top: 1px solid rgba(255,255,255,0.05); }
+        .action-btn { flex: 1; padding: 12px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 700; background: transparent; color: var(--text-dim); transition: 0.2s;}
+        .add-btn:hover { color: var(--accent); background: rgba(255,0,0,0.1); }
+        .remove-btn:hover { color: var(--danger); background: rgba(255,75,75,0.1); }
+        .play-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+        .loader { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-bottom-color: var(--accent); border-radius: 50%; display: none; animation: rotation 1s linear infinite; margin: 30px auto; }
+        @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .header-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar">
+        <div class="logo" onclick="window.location.reload()">
+            <i class="fas fa-music"></i> 
+            <div>
+                BATALHA DE CLIPES<br>
+                <span style="font-size: 0.7rem; font-weight: 400; color: var(--text-dim);">República Cocobongo</span>
+            </div>
+        </div>
+        
+        <div class="menu-section">
+            <p class="menu-title">Busca</p>
+            <div class="menu-item active" id="nav-search" onclick="changeMode('search')"><i class="fab fa-youtube"></i> Pesquisar no YT</div>
+        </div>
+
+        <div class="menu-section">
+            <p class="menu-title">Minhas Batalhas (Listas)</p>
+            <div id="sidebar-lists"></div>
+            <div class="menu-item" style="color:var(--text-main); font-weight: 800; margin-top: 10px;" onclick="createNewList()">
+                <i class="fas fa-plus-circle"></i> Criar Nova Lista
+            </div>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <div class="menu-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="search-container">
+                <input type="text" id="yt-search" placeholder="Buscar clipes no YouTube..." onkeypress="if(event.key === 'Enter') searchYouTube()">
+                <button class="search-btn" onclick="searchYouTube()"><i class="fas fa-search"></i></button>
+            </div>
+        </header>
+
+        <h2 id="page-title" class="header-title">Busca de Clipes</h2>
+        
+        <div class="loader" id="main-loader"></div>
+        <div class="results-grid" id="main-grid">
+            <div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--text-dim);">
+                Use a barra de pesquisa acima para encontrar clipes e adicionar às suas listas.
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // === CONFIGURAÇÕES DAS APIs ===
+        const YT_API_KEY = 'SUA_CHAVE_API_YOUTUBE_AQUI'; // Pegue no Google Cloud Console
+        const BIN_ID = '69a4b8ef43b1c97be9aa34ab'; // Coloque o ID do Bin que você criou
+        const MASTER_KEY = '$2a$10$T3C70qhYrKZMczxOir2xUeypvmxIZ89FRuioGyxBSh/gZorc4iBAy'; // Chave fornecida
+
+        let appData = { lists: [] };
+        let currentMode = 'search'; // 'search' ou ID da lista
+        let currentSearchResults = [];
+
+        // Inicialização
+        async function init() {
+            showLoader(true);
+            await syncJSONBin('GET');
+            renderListsSidebar();
+            showLoader(false);
+        }
+
+        // Comunicação com JSONBin
+        async function syncJSONBin(method) {
+            try {
+                const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+                const headers = { 'X-Master-Key': MASTER_KEY, 'Content-Type': 'application/json' };
+                if (method === 'GET') {
+                    const res = await fetch(`${url}/latest`, { headers });
+                    const json = await res.json();
+                    if (json.record && json.record.lists) {
+                        appData = json.record;
+                    }
+                } else {
+                    await fetch(url, { method: 'PUT', headers, body: JSON.stringify(appData) });
+                }
+            } catch (e) { 
+                console.error("Erro ao sincronizar com JSONBin", e);
+                alert("Erro ao conectar com o banco de dados. Verifique o BIN_ID.");
+            }
+        }
+
+        // Buscar vídeos no YouTube
+        async function searchYouTube() {
+            const query = document.getElementById('yt-search').value.trim();
+            if (!query) return;
+
+            changeMode('search');
+            showLoader(true);
+            document.getElementById('page-title').innerText = `Resultados para: "${query}"`;
+            document.getElementById('main-grid').innerHTML = '';
+
+            try {
+                const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video&key=${YT_API_KEY}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+
+                currentSearchResults = data.items.map(item => ({
+                    id: item.id.videoId,
+                    title: item.snippet.title,
+                    thumb: item.snippet.thumbnails.high.url
+                }));
+
+                renderGrid(currentSearchResults, false);
+            } catch (e) { 
+                console.error("Erro na API do YouTube", e);
+                document.getElementById('main-grid').innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--danger);">Erro ao buscar no YouTube. Verifique sua API Key.</div>`;
+            }
+            showLoader(false);
+        }
+
+        // Renderizar a grade de vídeos
+        function renderGrid(videos, isListMode) {
+            const grid = document.getElementById('main-grid');
+            if (!videos || !videos.length) {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--text-dim);">Nenhum vídeo encontrado.</div>`;
+                return;
+            }
+
+            grid.innerHTML = videos.map(v => {
+                const escapedTitle = v.title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                return `
+                <div class="video-card">
+                    <div class="thumb-wrapper">
+                        <img src="${v.thumb}" alt="Thumbnail">
+                    </div>
+                    <div class="video-card-info">
+                        <h3>${v.title}</h3>
+                    </div>
+                    <div class="card-actions">
+                        <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" class="action-btn play-btn" style="text-align:center; text-decoration:none;"><i class="fas fa-play"></i> Ver</a>
+                        ${isListMode ? 
+                            `<button class="action-btn remove-btn" onclick="removeFromList('${v.id}')"><i class="fas fa-trash-alt"></i> Tirar</button>` : 
+                            `<button class="action-btn add-btn" onclick="addToListPrompt('${v.id}', '${escapedTitle}', '${v.thumb}')"><i class="fas fa-plus"></i> Add Lista</button>`
+                        }
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Criar nova lista
+        async function createNewList() {
+            const name = prompt("Digite o nome da nova Batalha/Lista:");
+            if (!name) return;
+            
+            const newList = { id: 'list_' + Date.now().toString(), name: name, items: [] };
+            appData.lists.push(newList);
+            
+            showLoader(true);
+            await syncJSONBin('PUT');
+            renderListsSidebar();
+            showLoader(false);
+        }
+
+        // Deletar lista
+        async function deleteList(id, event) {
+            event.stopPropagation(); // Evita clicar na lista ao clicar no botão de apagar
+            if (confirm("Tem certeza que deseja apagar esta lista inteira?")) {
+                appData.lists = appData.lists.filter(l => l.id !== id);
+                if (currentMode === id) changeMode('search');
+                
+                showLoader(true);
+                await syncJSONBin('PUT');
+                renderListsSidebar();
+                showLoader(false);
+            }
+        }
+
+        // Adicionar vídeo a uma lista (Prompt para escolher)
+        async function addToListPrompt(videoId, title, thumb) {
+            if (!appData.lists || appData.lists.length === 0) {
+                alert("Você precisa criar uma lista primeiro!");
+                return;
+            }
+
+            let promptText = "Escolha o número da lista para adicionar:\n\n";
+            appData.lists.forEach((list, index) => {
+                promptText += `${index + 1}. ${list.name}\n`;
+            });
+
+            const choice = prompt(promptText);
+            if (!choice) return;
+
+            const listIndex = parseInt(choice) - 1;
+            const selectedList = appData.lists[listIndex];
+
+            if (selectedList) {
+                // Verificar se já existe na lista
+                if (selectedList.items.some(item => item.id === videoId)) {
+                    alert("Esse vídeo já está nessa lista!");
+                    return;
+                }
+
+                selectedList.items.push({ id: videoId, title: title, thumb: thumb });
+                
+                showLoader(true);
+                await syncJSONBin('PUT');
+                showLoader(false);
+                alert(`Adicionado com sucesso na lista: ${selectedList.name}`);
+            } else {
+                alert("Número de lista inválido.");
+            }
+        }
+
+        // Remover vídeo da lista atual
+        async function removeFromList(videoId) {
+            const list = appData.lists.find(l => l.id === currentMode);
+            if (list) {
+                list.items = list.items.filter(i => i.id !== videoId);
+                
+                showLoader(true);
+                await syncJSONBin('PUT');
+                renderUserList(list); // Re-renderiza a lista atual
+                showLoader(false);
+            }
+        }
+
+        // Renderizar menu lateral com as listas
+        function renderListsSidebar() {
+            const container = document.getElementById('sidebar-lists');
+            container.innerHTML = appData.lists.map(l => `
+                <div class="menu-item ${currentMode === l.id ? 'active' : ''}" onclick="viewCollection('${l.id}')">
+                    <i class="fas fa-list"></i> <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.name}</span>
+                    <button class="delete-list-btn" onclick="deleteList('${l.id}', event)"><i class="fas fa-times"></i></button>
+                </div>`).join('');
+        }
+
+        // Visualizar uma lista específica
+        function viewCollection(listId) {
+            changeMode(listId);
+            const list = appData.lists.find(l => l.id === listId);
+            if (list) {
+                document.getElementById('page-title').innerText = `Lista: ${list.name}`;
+                renderUserList(list);
+            }
+            if (window.innerWidth <= 1024) toggleSidebar();
+        }
+
+        // Renderiza os vídeos de uma lista
+        function renderUserList(list) {
+            renderGrid(list.items, true);
+        }
+
+        // Trocar entre modo Busca e visualização de Lista
+        function changeMode(mode) {
+            currentMode = mode;
+            
+            // Atualiza classes CSS do menu
+            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+            if (mode === 'search') {
+                document.getElementById('nav-search').classList.add('active');
+                if (currentSearchResults.length > 0) {
+                    document.getElementById('page-title').innerText = "Resultados da Busca";
+                    renderGrid(currentSearchResults, false);
+                } else {
+                    document.getElementById('page-title').innerText = "Busca de Clipes";
+                    document.getElementById('main-grid').innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--text-dim);">Use a barra de pesquisa acima para encontrar clipes.</div>';
+                }
+            } else {
+                // Atualiza visualização lateral se for uma lista
+                renderListsSidebar(); 
+            }
+        }
+
+        // Controles de UI
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('show');
+        }
+
+        function showLoader(show) { 
+            document.getElementById('main-loader').style.display = show ? 'block' : 'none'; 
+            if (show) document.getElementById('main-grid').innerHTML = '';
+        }
+
+        // Inicia o app
+        init();
+    </script>
+</body>
+</html>
