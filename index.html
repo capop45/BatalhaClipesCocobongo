@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Batalha de Clipes | República Cocobongo</title>
+    
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/727/727218.png">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -158,10 +161,9 @@
         const MASTER_KEY = '$2a$10$T3C70qhYrKZMczxOir2xUeypvmxIZ89FRuioGyxBSh/gZorc4iBAy'; // Chave fornecida
 
         let appData = { lists: [] };
-        let currentMode = 'search'; // 'search' ou ID da lista
+        let currentMode = 'search'; 
         let currentSearchResults = [];
 
-        // Inicialização
         async function init() {
             showLoader(true);
             await syncJSONBin('GET');
@@ -169,7 +171,6 @@
             showLoader(false);
         }
 
-        // Comunicação com JSONBin
         async function syncJSONBin(method) {
             try {
                 const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -185,11 +186,9 @@
                 }
             } catch (e) { 
                 console.error("Erro ao sincronizar com JSONBin", e);
-                alert("Erro ao conectar com o banco de dados. Verifique o BIN_ID.");
             }
         }
 
-        // Buscar vídeos no YouTube
         async function searchYouTube() {
             const query = document.getElementById('yt-search').value.trim();
             if (!query) return;
@@ -197,17 +196,12 @@
             changeMode('search');
             showLoader(true);
             document.getElementById('page-title').innerText = `Resultados para: "${query}"`;
-            document.getElementById('main-grid').innerHTML = '';
 
             try {
                 const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video&key=${YT_API_KEY}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 
-                if (data.error) {
-                    throw new Error(data.error.message);
-                }
-
                 currentSearchResults = data.items.map(item => ({
                     id: item.id.videoId,
                     title: item.snippet.title,
@@ -216,13 +210,11 @@
 
                 renderGrid(currentSearchResults, false);
             } catch (e) { 
-                console.error("Erro na API do YouTube", e);
-                document.getElementById('main-grid').innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--danger);">Erro ao buscar no YouTube. Verifique sua API Key.</div>`;
+                document.getElementById('main-grid').innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--danger);">Erro na busca. Verifique a API Key.</div>`;
             }
             showLoader(false);
         }
 
-        // Renderizar a grade de vídeos
         function renderGrid(videos, isListMode) {
             const grid = document.getElementById('main-grid');
             if (!videos || !videos.length) {
@@ -251,84 +243,47 @@
             }).join('');
         }
 
-        // Criar nova lista
         async function createNewList() {
             const name = prompt("Digite o nome da nova Batalha/Lista:");
             if (!name) return;
-            
             const newList = { id: 'list_' + Date.now().toString(), name: name, items: [] };
             appData.lists.push(newList);
-            
-            showLoader(true);
             await syncJSONBin('PUT');
             renderListsSidebar();
-            showLoader(false);
         }
 
-        // Deletar lista
         async function deleteList(id, event) {
-            event.stopPropagation(); // Evita clicar na lista ao clicar no botão de apagar
-            if (confirm("Tem certeza que deseja apagar esta lista inteira?")) {
+            event.stopPropagation();
+            if (confirm("Apagar esta lista inteira?")) {
                 appData.lists = appData.lists.filter(l => l.id !== id);
                 if (currentMode === id) changeMode('search');
-                
-                showLoader(true);
                 await syncJSONBin('PUT');
                 renderListsSidebar();
-                showLoader(false);
             }
         }
 
-        // Adicionar vídeo a uma lista (Prompt para escolher)
         async function addToListPrompt(videoId, title, thumb) {
-            if (!appData.lists || appData.lists.length === 0) {
-                alert("Você precisa criar uma lista primeiro!");
-                return;
-            }
-
-            let promptText = "Escolha o número da lista para adicionar:\n\n";
-            appData.lists.forEach((list, index) => {
-                promptText += `${index + 1}. ${list.name}\n`;
-            });
-
+            if (!appData.lists.length) return alert("Crie uma lista primeiro!");
+            let promptText = "Escolha o número da lista:\n\n" + appData.lists.map((l, i) => `${i + 1}. ${l.name}`).join('\n');
             const choice = prompt(promptText);
-            if (!choice) return;
-
-            const listIndex = parseInt(choice) - 1;
-            const selectedList = appData.lists[listIndex];
-
-            if (selectedList) {
-                // Verificar se já existe na lista
-                if (selectedList.items.some(item => item.id === videoId)) {
-                    alert("Esse vídeo já está nessa lista!");
-                    return;
-                }
-
-                selectedList.items.push({ id: videoId, title: title, thumb: thumb });
-                
-                showLoader(true);
+            const idx = parseInt(choice) - 1;
+            if (appData.lists[idx]) {
+                if (appData.lists[idx].items.some(item => item.id === videoId)) return alert("Já está na lista!");
+                appData.lists[idx].items.push({ id: videoId, title, thumb });
                 await syncJSONBin('PUT');
-                showLoader(false);
-                alert(`Adicionado com sucesso na lista: ${selectedList.name}`);
-            } else {
-                alert("Número de lista inválido.");
+                alert("Adicionado!");
             }
         }
 
-        // Remover vídeo da lista atual
         async function removeFromList(videoId) {
             const list = appData.lists.find(l => l.id === currentMode);
             if (list) {
                 list.items = list.items.filter(i => i.id !== videoId);
-                
-                showLoader(true);
                 await syncJSONBin('PUT');
-                renderUserList(list); // Re-renderiza a lista atual
-                showLoader(false);
+                renderUserList(list);
             }
         }
 
-        // Renderizar menu lateral com as listas
         function renderListsSidebar() {
             const container = document.getElementById('sidebar-lists');
             container.innerHTML = appData.lists.map(l => `
@@ -338,7 +293,6 @@
                 </div>`).join('');
         }
 
-        // Visualizar uma lista específica
         function viewCollection(listId) {
             changeMode(listId);
             const list = appData.lists.find(l => l.id === listId);
@@ -349,33 +303,15 @@
             if (window.innerWidth <= 1024) toggleSidebar();
         }
 
-        // Renderiza os vídeos de uma lista
-        function renderUserList(list) {
-            renderGrid(list.items, true);
-        }
+        function renderUserList(list) { renderGrid(list.items, true); }
 
-        // Trocar entre modo Busca e visualização de Lista
         function changeMode(mode) {
             currentMode = mode;
-            
-            // Atualiza classes CSS do menu
             document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-            if (mode === 'search') {
-                document.getElementById('nav-search').classList.add('active');
-                if (currentSearchResults.length > 0) {
-                    document.getElementById('page-title').innerText = "Resultados da Busca";
-                    renderGrid(currentSearchResults, false);
-                } else {
-                    document.getElementById('page-title').innerText = "Busca de Clipes";
-                    document.getElementById('main-grid').innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--text-dim);">Use a barra de pesquisa acima para encontrar clipes.</div>';
-                }
-            } else {
-                // Atualiza visualização lateral se for uma lista
-                renderListsSidebar(); 
-            }
+            if (mode === 'search') document.getElementById('nav-search').classList.add('active');
+            renderListsSidebar(); 
         }
 
-        // Controles de UI
         function toggleSidebar() { 
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('show');
@@ -386,7 +322,6 @@
             if (show) document.getElementById('main-grid').innerHTML = '';
         }
 
-        // Inicia o app
         init();
     </script>
 </body>
