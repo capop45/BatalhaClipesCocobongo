@@ -156,9 +156,9 @@
 
     <script>
         // === CONFIGURAÇÕES DAS APIs ===
-        const YT_API_KEY = 'AIzaSyDIrNerffdpr-SOMZoEWpbyZZ6RuYWILIw'; // Pegue no Google Cloud Console
-        const BIN_ID = '69a4b8ef43b1c97be9aa34ab'; // Coloque o ID do Bin que você criou
-        const MASTER_KEY = '$2a$10$T3C70qhYrKZMczxOir2xUeypvmxIZ89FRuioGyxBSh/gZorc4iBAy'; // Chave fornecida
+        const YT_API_KEY = 'AIzaSyDIrNerffdpr-SOMZoEWpbyZZ6RuYWILIw'; 
+        const BIN_ID = '69a4b8ef43b1c97be9aa34ab'; 
+        const MASTER_KEY = '$2a$10$T3C70qhYrKZMczxOir2xUeypvmxIZ89FRuioGyxBSh/gZorc4iBAy'; 
 
         let appData = { lists: [] };
         let currentMode = 'search'; 
@@ -223,8 +223,6 @@
             }
 
             grid.innerHTML = videos.map(v => {
-                // CORREÇÃO AQUI: Escape triplo para aspas e escape para barras invertidas
-                const escapedTitle = v.title.replace(/\\/g, '\\\\').replace(/'/g, "\\\\'").replace(/"/g, "&quot;");
                 return `
                 <div class="video-card">
                     <div class="thumb-wrapper">
@@ -237,7 +235,7 @@
                         <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" class="action-btn play-btn" style="text-align:center; text-decoration:none;"><i class="fas fa-play"></i> Ver</a>
                         ${isListMode ? 
                             `<button class="action-btn remove-btn" onclick="removeFromList('${v.id}')"><i class="fas fa-trash-alt"></i> Tirar</button>` : 
-                            `<button class="action-btn add-btn" onclick="addToListPrompt('${v.id}', '${escapedTitle}', '${v.thumb}')"><i class="fas fa-plus"></i> Add Lista</button>`
+                            `<button class="action-btn add-btn" onclick="addToListPrompt('${v.id}')"><i class="fas fa-plus"></i> Add Lista</button>`
                         }
                     </div>
                 </div>`;
@@ -263,11 +261,18 @@
             }
         }
 
-        async function addToListPrompt(videoId, title, thumb) {
+        async function addToListPrompt(videoId) {
+            // Busca os dados do vídeo na memória para evitar erros de aspas no HTML
+            const video = currentSearchResults.find(v => v.id === videoId);
+            if (!video) return alert("Erro ao recuperar dados do vídeo. Tente pesquisar novamente.");
+            
+            const { title, thumb } = video;
+
             if (!appData.lists.length) return alert("Crie uma lista primeiro!");
             let promptText = "Escolha o número da lista:\n\n" + appData.lists.map((l, i) => `${i + 1}. ${l.name}`).join('\n');
             const choice = prompt(promptText);
             const idx = parseInt(choice) - 1;
+            
             if (appData.lists[idx]) {
                 if (appData.lists[idx].items.some(item => item.id === videoId)) return alert("Já está na lista!");
                 appData.lists[idx].items.push({ id: videoId, title, thumb });
