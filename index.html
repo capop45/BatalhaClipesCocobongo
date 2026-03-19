@@ -1,3 +1,8 @@
+Para resolver o problema do link "poluído" e fazer o botão lateral funcionar corretamente, você precisa fazer duas alterações principais no seu <script>.
+Onde alterar:
+ * Filtro de Link: Dentro da função searchYouTube(), logo no início, adicione uma lógica de Expressão Regular (Regex). Isso vai identificar se o que o usuário colou é um link e extrair apenas o ID do vídeo (os 11 caracteres principais), descartando o resto.
+ * Botão "Pesquisar no YT": A função changeMode('search') já é chamada pelo botão, mas ela apenas muda a aparência visual. Você deve adicionar dentro dela o comando para "limpar" a tela e voltar ao estado inicial de busca.
+Aqui está a grande sacada no código completo e corrigido:
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -138,7 +143,7 @@
                 <i class="fas fa-bars"></i>
             </div>
             <div class="search-container">
-                <input type="text" id="yt-search" placeholder="Cole o link ou busque clipes..." onkeypress="if(event.key === 'Enter') searchYouTube()">
+                <input type="text" id="yt-search" placeholder="Buscar clipes no YouTube..." onkeypress="if(event.key === 'Enter') searchYouTube()">
                 <button class="search-btn" onclick="searchYouTube()"><i class="fas fa-search"></i></button>
             </div>
         </header>
@@ -156,7 +161,7 @@
 
     <script>
         // === CONFIGURAÇÕES DAS APIs ===
-        const YT_API_KEY = 'SUA_API_KEY_AQUI'; 
+        const YT_API_KEY = 'AIzaSyDvgWF02W5vKkgnHXNZCgH4AqXgzCPXB0k'; 
         const BIN_ID = '69a4b8ef43b1c97be9aa34ab'; 
         const MASTER_KEY = '$2a$10$T3C70qhYrKZMczxOir2xUeypvmxIZ89FRuioGyxBSh/gZorc4iBAy'; 
 
@@ -193,22 +198,19 @@
             let query = document.getElementById('yt-search').value.trim();
             if (!query) return;
 
-            // --- FILTRO DE LIMPEZA DE URL ---
-            // Regex que captura o ID de vídeos em links curtos (youtu.be), normais (watch?v=) ou embed
-            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-            const match = query.match(ytRegex);
-
-            // Se o usuário colou um link, extraímos apenas o ID
-            if (match && match[1]) {
-                query = match[1];
+            // --- FILTRO DE LINK DO YOUTUBE (ADICIONADO) ---
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = query.match(regExp);
+            if (match && match[2].length === 11) {
+                query = match[2]; // Se for link, extrai apenas o ID do vídeo
             }
+            // ----------------------------------------------
 
             changeMode('search');
             showLoader(true);
             document.getElementById('page-title').innerText = `Resultados para: "${query}"`;
 
             try {
-                // Ao pesquisar o ID puro, o YouTube retorna o vídeo exato como primeiro resultado
                 const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video&key=${YT_API_KEY}`;
                 const res = await fetch(url);
                 const data = await res.json();
@@ -324,7 +326,19 @@
         function changeMode(mode) {
             currentMode = mode;
             document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-            if (mode === 'search') document.getElementById('nav-search').classList.add('active');
+            
+            // --- CONSERTO DO BOTÃO PESQUISAR NO YT (MODIFICADO) ---
+            if (mode === 'search') {
+                document.getElementById('nav-search').classList.add('active');
+                document.getElementById('page-title').innerText = "Busca de Clipes";
+                document.getElementById('yt-search').value = ""; // Limpa o campo de busca
+                document.getElementById('main-grid').innerHTML = `
+                    <div style="grid-column:1/-1; text-align:center; padding:50px; color: var(--text-dim);">
+                        Use a barra de pesquisa acima para encontrar clipes e adicionar às suas listas.
+                    </div>`;
+            }
+            // ------------------------------------------------------
+            
             renderListsSidebar(); 
         }
 
@@ -335,10 +349,14 @@
 
         function showLoader(show) { 
             document.getElementById('main-loader').style.display = show ? 'block' : 'none'; 
-            if (show) document.getElementById('main-grid').innerHTML = '';
+            if (show) {
+                const grid = document.getElementById('main-grid');
+                if (grid) grid.innerHTML = '';
+            }
         }
 
         init();
     </script>
 </body>
 </html>
+
