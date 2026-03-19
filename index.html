@@ -1,8 +1,3 @@
-Para resolver o problema do link "poluído" e fazer o botão lateral funcionar corretamente, você precisa fazer duas alterações principais no seu <script>.
-Onde alterar:
- * Filtro de Link: Dentro da função searchYouTube(), logo no início, adicione uma lógica de Expressão Regular (Regex). Isso vai identificar se o que o usuário colou é um link e extrair apenas o ID do vídeo (os 11 caracteres principais), descartando o resto.
- * Botão "Pesquisar no YT": A função changeMode('search') já é chamada pelo botão, mas ela apenas muda a aparência visual. Você deve adicionar dentro dela o comando para "limpar" a tela e voltar ao estado inicial de busca.
-Aqui está a grande sacada no código completo e corrigido:
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -359,4 +354,3 @@ Aqui está a grande sacada no código completo e corrigido:
     </script>
 </body>
 </html>
-
