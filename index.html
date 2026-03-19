@@ -138,7 +138,7 @@
                 <i class="fas fa-bars"></i>
             </div>
             <div class="search-container">
-                <input type="text" id="yt-search" placeholder="Buscar clipes no YouTube..." onkeypress="if(event.key === 'Enter') searchYouTube()">
+                <input type="text" id="yt-search" placeholder="Cole o link ou busque clipes..." onkeypress="if(event.key === 'Enter') searchYouTube()">
                 <button class="search-btn" onclick="searchYouTube()"><i class="fas fa-search"></i></button>
             </div>
         </header>
@@ -156,7 +156,7 @@
 
     <script>
         // === CONFIGURAÇÕES DAS APIs ===
-        const YT_API_KEY = 'AIzaSyDvgWF02W5vKkgnHXNZCgH4AqXgzCPXB0k'; 
+        const YT_API_KEY = 'SUA_API_KEY_AQUI'; 
         const BIN_ID = '69a4b8ef43b1c97be9aa34ab'; 
         const MASTER_KEY = '$2a$10$T3C70qhYrKZMczxOir2xUeypvmxIZ89FRuioGyxBSh/gZorc4iBAy'; 
 
@@ -190,14 +190,25 @@
         }
 
         async function searchYouTube() {
-            const query = document.getElementById('yt-search').value.trim();
+            let query = document.getElementById('yt-search').value.trim();
             if (!query) return;
+
+            // --- FILTRO DE LIMPEZA DE URL ---
+            // Regex que captura o ID de vídeos em links curtos (youtu.be), normais (watch?v=) ou embed
+            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = query.match(ytRegex);
+
+            // Se o usuário colou um link, extraímos apenas o ID
+            if (match && match[1]) {
+                query = match[1];
+            }
 
             changeMode('search');
             showLoader(true);
             document.getElementById('page-title').innerText = `Resultados para: "${query}"`;
 
             try {
+                // Ao pesquisar o ID puro, o YouTube retorna o vídeo exato como primeiro resultado
                 const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video&key=${YT_API_KEY}`;
                 const res = await fetch(url);
                 const data = await res.json();
@@ -262,7 +273,6 @@
         }
 
         async function addToListPrompt(videoId) {
-            // Busca os dados do vídeo na memória para evitar erros de aspas no HTML
             const video = currentSearchResults.find(v => v.id === videoId);
             if (!video) return alert("Erro ao recuperar dados do vídeo. Tente pesquisar novamente.");
             
